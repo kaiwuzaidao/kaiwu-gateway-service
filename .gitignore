@@ -1,0 +1,10 @@
+target/
+.idea/
+.vscode/
+*.iml
+.DS_Store
+.env
+*.log
+
+# 本地联调用的业务项目路由，逐人不同，不进版本库
+routes.local.d/

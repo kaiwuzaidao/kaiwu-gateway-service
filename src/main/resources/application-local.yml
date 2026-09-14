@@ -1,0 +1,63 @@
+server:
+  port: ${SERVER_PORT:8088}
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 10s
+          routes:
+            - id: system-public-hello
+              uri: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
+              predicates:
+                - Path=/api/hello
+                - Method=GET
+              metadata:
+                accessMode: PUBLIC
+                audience: kaiwu-system-service
+            - id: system-public-auth
+              uri: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
+              predicates:
+                - Path=/api/auth/login,/api/auth/refresh
+                - Method=POST
+              metadata:
+                accessMode: PUBLIC
+                audience: kaiwu-system-service
+            - id: system-public-i18n-catalog
+              uri: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
+              predicates:
+                - Path=/api/public/i18n/catalog
+                - Method=GET
+              metadata:
+                accessMode: PUBLIC
+                audience: kaiwu-system-service
+            - id: system-platform
+              uri: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
+              predicates:
+                - Path=/api/auth/logout,/api/auth/me,/api/auth/me/locale,/api/auth/menus,/api/auth/password,/api/platform/**,/api/users/**,/api/projects/**,/api/current/**,/api/metadata/**,/api/i18n/**,/api/ai/**,/api/project-generations/**,/api/gitlab/**,/api/logs/**,/api/org/**,/api/scheduler/**,/api/search
+              metadata:
+                accessMode: PLATFORM
+                audience: kaiwu-system-service
+
+kaiwu:
+  gateway:
+    project-access:
+      # PROJECT 路由的入口授权来源（ADR 0022）。两者缺一时 PROJECT 请求一律 503，
+      # 这是有意的失败关闭：「没配好」必须表现为拒绝服务，而不是表现为不鉴权。
+      system-base-url: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
+      internal-token: ${KAIWU_GATEWAY_INTERNAL_TOKEN:}
+    auth:
+      access-public-key: ${KAIWU_ACCESS_PUBLIC_KEY}
+      context-private-key: ${KAIWU_CONTEXT_PRIVATE_KEY}
+      context-ttl-seconds: 60
