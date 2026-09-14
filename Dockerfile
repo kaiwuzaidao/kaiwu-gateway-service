@@ -8,7 +8,11 @@ ARG RUNTIME_IMAGE=eclipse-temurin:21-jre
 FROM ${BUILDER_IMAGE} AS builder
 WORKDIR /workspace
 COPY . .
-RUN mvn -q -s .mvn/settings.xml -DskipTests package
+# Maven 参数走 ARG：仓库内的 .mvn/settings.xml 把 central 指向阿里云镜像，那是给
+# 境内开发机与内网 CI 用的。GitHub Actions 的 runner 在境外，经该镜像会解析失败
+# （实测 netty-codec-http2 拉不到），构建时用 --build-arg MAVEN_ARGS= 直连 Central。
+ARG MAVEN_ARGS="-s .mvn/settings.xml"
+RUN mvn -q ${MAVEN_ARGS} -DskipTests package
 
 FROM ${RUNTIME_IMAGE}
 WORKDIR /app

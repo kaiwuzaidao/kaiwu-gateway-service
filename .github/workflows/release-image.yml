@@ -36,6 +36,9 @@ jobs:
         with:
           context: .
           push: true
+          # 境外 runner 直连 Maven Central，不走仓库内的阿里云镜像配置。
+          build-args: |
+            MAVEN_ARGS=
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # 生产集群（R730 K3S）是 amd64；只出这一个架构，构建快且够用。
