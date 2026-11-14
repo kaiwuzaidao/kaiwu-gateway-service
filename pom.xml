@@ -13,7 +13,7 @@
 
     <groupId>com.kaiwuzaidao</groupId>
     <artifactId>kaiwu-gateway-service</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <name>Kaiwu Gateway Service</name>
     <description>Kaiwu 外部认证、项目入口策略与显式路由</description>
     <licenses>
@@ -34,6 +34,10 @@
         <jackson-2-bom.version>2.21.5</jackson-2-bom.version>
         <jackson-bom.version>3.1.5</jackson-bom.version>
         <netty.version>4.2.17.Final</netty.version>
+        <!-- Spring Boot 4.0.7 管理的 Spring Framework 7.0.8 有 2 个 CRITICAL：CVE-2026-47890、
+             CVE-2026-47892（spring-webflux），镜像扫描 scan:image 因此失败（2026-10-21）。
+             修复版 7.0.9，与 kaiwu-system-service 一致。Spring Boot 升级到自带该版本后可移除本行。 -->
+        <spring-framework.version>7.0.9</spring-framework.version>
         <spring-cloud.version>2025.1.2</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
         <jjwt.version>0.13.0</jjwt.version>
@@ -60,7 +64,8 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>1.84</version>
+                <!-- CVE-2026-8763: 1.85 修复，采用同线后续补丁。 -->
+                <version>1.85.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -5,13 +5,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR;
 
-import com.kaiwu.gateway.auth.AccessPrincipal;
-import com.kaiwu.gateway.auth.ExternalAccessTokenVerifier;
-import com.kaiwu.gateway.auth.GatewayContextIssuer;
-import com.kaiwu.gateway.auth.ProjectAccess;
-import com.kaiwu.gateway.auth.ProjectAccessResolver;
-import com.kaiwu.gateway.auth.SessionSnapshot;
-import com.kaiwu.gateway.auth.SessionSnapshotRepository;
+import com.kaiwu.gateway.auth.model.AccessPrincipal;
+import com.kaiwu.gateway.auth.model.ProjectAccess;
+import com.kaiwu.gateway.auth.model.SessionSnapshot;
+import com.kaiwu.gateway.auth.repository.SessionSnapshotRepository;
+import com.kaiwu.gateway.auth.service.ExternalAccessTokenVerifier;
+import com.kaiwu.gateway.auth.service.GatewayContextIssuer;
+import com.kaiwu.gateway.auth.service.ProjectAccessResolver;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +49,26 @@ class GatewayAuthenticationFilterTest {
                 .verifyComplete();
 
         assertThat(forwardedContext.get()).isEqualTo("signed-context");
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
+    void sessionStoreFailureStillFailsClosed() {
+        authenticated();
+        when(sessionRepository.find("session-1"))
+                .thenReturn(Mono.error(new IllegalStateException("redis unavailable")));
+        assertRejected(platformExchange(), HttpStatus.SERVICE_UNAVAILABLE, null);
+    }
+
+    @Test
+    void downstreamTimeoutIsNotMisreportedAsSessionFailure() {
+        authenticated();
+        when(contextIssuer.issue(principal, snapshot, "kaiwu-system-service")).thenReturn("signed-context");
+        MockServerWebExchange exchange = platformExchange();
+        var timeout = new org.springframework.web.server.ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT);
+        StepVerifier.create(filter(null).filter(exchange, forwarded -> Mono.error(timeout)))
+                .expectErrorMatches(error -> error == timeout)
+                .verify();
         assertThat(exchange.getResponse().getStatusCode()).isNull();
     }
 
@@ -97,6 +117,18 @@ class GatewayAuthenticationFilterTest {
                 .thenReturn(Mono.just(new ProjectAccess("9000000000000001001", "order-center", List.of(), List.of())));
 
         assertRejected(projectExchange("9000000000000009999"), HttpStatus.FORBIDDEN);
+    }
+
+    /** Context 超过 16 KiB：403 失败关闭，请求不得到达下游，也不截断声明。 */
+    @Test
+    void rejectsWithForbiddenWhenContextExceedsLimit() {
+        authenticated();
+        ProjectAccess access = new ProjectAccess("9000000000000001001", "order-center", List.of(), List.of());
+        when(resolver.resolve("order-center", "1")).thenReturn(Mono.just(access));
+        when(contextIssuer.issueForProject(principal, snapshot, "kaiwu-order-center-service", access))
+                .thenThrow(new GatewayContextIssuer.ContextTooLargeException(20000));
+
+        assertRejected(projectExchange(null), HttpStatus.FORBIDDEN);
     }
 
     /** System 拿不到结论：503 失败关闭，绝不放行。 */

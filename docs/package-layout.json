@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "profile": "gateway",
+  "basePackage": "com.kaiwu.gateway",
+  "categories": [
+    "agent",
+    "auth",
+    "readiness",
+    "route"
+  ],
+  "layers": [
+    "controller",
+    "service",
+    "repository",
+    "mapper",
+    "entity",
+    "convert",
+    "agent",
+    "adapter",
+    "config",
+    "client",
+    "model",
+    "dto",
+    "vo",
+    "exception",
+    "lifecycle",
+    "renderer",
+    "planning",
+    "catalog",
+    "execution",
+    "presentation",
+    "protocol",
+    "store",
+    "audit"
+  ],
+  "compatibilityTypes": [],
+  "sourceRoots": [
+    "src/main/java"
+  ],
+  "concreteServiceHelpers": []
+}

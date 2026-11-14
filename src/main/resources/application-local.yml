@@ -29,7 +29,7 @@ spring:
             - id: system-public-auth
               uri: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
               predicates:
-                - Path=/api/auth/login,/api/auth/refresh
+                - Path=/api/auth/login,/api/auth/refresh,/api/auth/device/start,/api/auth/device/token
                 - Method=POST
               metadata:
                 accessMode: PUBLIC
@@ -42,10 +42,22 @@ spring:
               metadata:
                 accessMode: PUBLIC
                 audience: kaiwu-system-service
+            - id: system-agent-ask
+              order: -1
+              uri: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
+              predicates:
+                - Path=/api/agent/ask,/api/agent/conversations/{conversationId}/messages
+                - Method=POST
+              metadata:
+                accessMode: PLATFORM
+                audience: kaiwu-system-service
+                # Planning and answer generation each have a 60s provider timeout.
+                # Bound only chat generation, not conversation management or other APIs.
+                response-timeout: 150000
             - id: system-platform
               uri: ${KAIWU_SYSTEM_SERVICE_URI:http://127.0.0.1:8080}
               predicates:
-                - Path=/api/auth/logout,/api/auth/me,/api/auth/me/locale,/api/auth/menus,/api/auth/password,/api/platform/**,/api/users/**,/api/projects/**,/api/current/**,/api/metadata/**,/api/i18n/**,/api/ai/**,/api/project-generations/**,/api/gitlab/**,/api/logs/**,/api/org/**,/api/scheduler/**,/api/search
+                - Path=/api/auth/logout,/api/auth/me,/api/auth/me/locale,/api/auth/menus,/api/auth/password,/api/auth/device/*,/api/auth/device/*/approve,/api/auth/device/*/deny,/api/platform/**,/api/users/**,/api/projects/**,/api/current/**,/api/metadata/**,/api/i18n/**,/api/ai/**,/api/project-generations/**,/api/gitlab/**,/api/logs/**,/api/org/**,/api/scheduler/**,/api/search,/api/agent/**
               metadata:
                 accessMode: PLATFORM
                 audience: kaiwu-system-service

@@ -81,3 +81,14 @@ Pull Request 请说明变更、风险与可直接执行的验证步骤。
 ## License
 
 本项目基于 [Apache License 2.0](LICENSE) 开源。
+
+### C1项目多服务显式片段
+
+受管目录接受默认`/{project}-api/**`及非默认`/{project}-svc/{service}/**`；后者必须声明serviceCode，
+route ID固定为`{project}.{service}-project`，audience固定为`kaiwu-{project}.{service}-service`，只允许规范原点和精确RewritePath。
+默认片段缺serviceCode仍按default兼容，旧默认上游路径和额外过滤器规则保留。项目编码上限与System一致为64字符。
+
+配置`kaiwu.gateway.managed-routes-dir`后，对完整来源快照检查路由ID/audience/路径冲突；不能证明不相交的模板路径保守拒绝。
+Agent读/写委托只在default候选中选唯一目标，新增同项目服务不参与默认选路。登记数据库记录不会自动创建外部路由。
+本分支只做功能集成，未部署；回退前先停相关worker并撤除非default片段，保留默认兼容片段及数据库事实。
+见[本步交接](docs/verification/workflow-platform-step4-c1-20261103/HANDOFF.md)。

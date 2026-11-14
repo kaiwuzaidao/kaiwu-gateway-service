@@ -2,13 +2,13 @@ package com.kaiwu.gateway.filter;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR;
 
-import com.kaiwu.gateway.auth.AccessPrincipal;
-import com.kaiwu.gateway.auth.ExternalAccessTokenVerifier;
-import com.kaiwu.gateway.auth.GatewayContextIssuer;
-import com.kaiwu.gateway.auth.ProjectAccess;
-import com.kaiwu.gateway.auth.ProjectAccessResolver;
-import com.kaiwu.gateway.auth.SessionSnapshot;
-import com.kaiwu.gateway.auth.SessionSnapshotRepository;
+import com.kaiwu.gateway.auth.model.AccessPrincipal;
+import com.kaiwu.gateway.auth.model.ProjectAccess;
+import com.kaiwu.gateway.auth.model.SessionSnapshot;
+import com.kaiwu.gateway.auth.repository.SessionSnapshotRepository;
+import com.kaiwu.gateway.auth.service.ExternalAccessTokenVerifier;
+import com.kaiwu.gateway.auth.service.GatewayContextIssuer;
+import com.kaiwu.gateway.auth.service.ProjectAccessResolver;
 import java.util.Locale;
 import java.util.Optional;
 import org.springframework.beans.factory.ObjectProvider;
@@ -84,6 +84,9 @@ public class GatewayAuthenticationFilter implements GlobalFilter, Ordered {
 
         return sessionRepository
                 .find(principal.sessionId())
+                // Only session lookup failures belong to authentication availability.
+                // Downstream timeouts must retain their own HTTP failure semantics.
+                .onErrorMap(SessionVerificationException::new)
                 .filter(snapshot -> principal.userId().equals(snapshot.userId()))
                 .switchIfEmpty(Mono.error(new MissingSessionException()))
                 .flatMap(snapshot -> projectRoute
@@ -93,13 +96,15 @@ public class GatewayAuthenticationFilter implements GlobalFilter, Ordered {
                         MissingSessionException.class,
                         exception -> GatewayResponses.reject(
                                 exchange, HttpStatus.UNAUTHORIZED, "会话已失效，请重新登录", "gateway.sessionExpired"))
-                .onErrorResume(exception -> exchange.getResponse().isCommitted()
-                        ? Mono.error(exception)
-                        : GatewayResponses.reject(
-                                exchange,
-                                HttpStatus.SERVICE_UNAVAILABLE,
-                                "会话校验暂不可用",
-                                "gateway.sessionVerificationUnavailable"));
+                .onErrorResume(
+                        SessionVerificationException.class,
+                        exception -> exchange.getResponse().isCommitted()
+                                ? Mono.error(exception)
+                                : GatewayResponses.reject(
+                                        exchange,
+                                        HttpStatus.SERVICE_UNAVAILABLE,
+                                        "会话校验暂不可用",
+                                        "gateway.sessionVerificationUnavailable"));
     }
 
     /** PLATFORM/PUBLIC 之外的既有路径：Context 不携带项目事实。 */
@@ -153,6 +158,10 @@ public class GatewayAuthenticationFilter implements GlobalFilter, Ordered {
                             exchange, contextIssuer.issueForProject(principal, snapshot, audience, access)));
                 })
                 .onErrorResume(
+                        GatewayContextIssuer.ContextTooLargeException.class,
+                        exception -> GatewayResponses.reject(
+                                exchange, HttpStatus.FORBIDDEN, "数据范围过大，请联系管理员调整", "gateway.dataScopeTooLarge"))
+                .onErrorResume(
                         ProjectAccessResolver.ProjectAccessUnavailableException.class,
                         exception -> GatewayResponses.reject(
                                 exchange,
@@ -190,4 +199,10 @@ public class GatewayAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private static final class MissingSessionException extends RuntimeException {}
+
+    private static final class SessionVerificationException extends RuntimeException {
+        private SessionVerificationException(Throwable cause) {
+            super(cause);
+        }
+    }
 }
