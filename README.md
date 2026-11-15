@@ -91,5 +91,4 @@ Pull Request 请说明变更、风险与可直接执行的验证步骤。
 路由 ID、audience 和路径冲突，无法证明互不重叠的模板路径也会被拒绝。
 
 Agent 读写委托从默认服务中选择唯一目标。在 System 登记后端服务后，还需发布其路由片段。
-停用或回退非默认服务时，先停止相关调用并撤销对应片段。接入步骤见 System 仓的
-[多后端服务文档](https://github.com/kaiwuzaidao/kaiwu-system-service/blob/v0.2.0/docs/PROJECT_BACKEND_SERVICES.md)。
+停用或回退非默认服务时，先停止相关调用并撤销对应片段。新旧副本混用时，保持多服务开关关闭。升级次序见 [System 发行手册](https://github.com/kaiwuzaidao/kaiwu-system-service/blob/v0.2.0/docs/UPGRADING.md#平台组件的升级顺序)。
