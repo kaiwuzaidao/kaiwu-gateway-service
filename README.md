@@ -61,34 +61,34 @@ lb://kaiwu-system-service      交给 Spring Cloud LoadBalancer
 
 ## 本地运行
 
-Gateway 依赖 Redis 与 System，单独跑意义不大。完整链路请用入口仓的 `./kaiwu up`。
+Gateway 依赖 Redis 与 System。首次运行请在入口仓执行 `./kaiwu up`，它会准备完整链路。
 
-只构建本仓：
+开发本仓需要 JDK 21 和 Maven 3.9+。将 `JAVA_HOME` 指向本机 JDK 21 的安装目录后，在本仓根目录执行：
 
 ```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
-export MAVEN_SKIP_RC=1
-mvn -s .mvn/settings.xml verify
+./scripts/verify.sh
 ```
 
-或执行 `./scripts/verify.sh`，它会先拒绝非 JDK 21 环境。
+脚本会检查 Java 和 Maven 实际使用的 JDK 版本，再运行完整 Maven 校验。
 
 ## 参与开发
 
-改动前请读 `CLAUDE.md` 与工作区 ADR 0001、0003、0022、0024。
+改动前请读 [AGENTS.md](AGENTS.md)、[CLAUDE.md](CLAUDE.md) 与 System 仓的[架构决策](https://github.com/kaiwuzaidao/kaiwu-system-service/tree/v0.2.0/docs/adr)，重点查看 ADR 0001、0003、0022、0024。
 Pull Request 请说明变更、风险与可直接执行的验证步骤。
 
 ## License
 
 本项目基于 [Apache License 2.0](LICENSE) 开源。
 
-### C1项目多服务显式片段
+## 项目多服务路由
 
-受管目录接受默认`/{project}-api/**`及非默认`/{project}-svc/{service}/**`；后者必须声明serviceCode，
-route ID固定为`{project}.{service}-project`，audience固定为`kaiwu-{project}.{service}-service`，只允许规范原点和精确RewritePath。
-默认片段缺serviceCode仍按default兼容，旧默认上游路径和额外过滤器规则保留。项目编码上限与System一致为64字符。
+默认服务使用 `/{project}-api/**`。其他服务使用 `/{project}-svc/{service}/**`，必须声明
+`serviceCode`，并使用固定的 route ID `{project}.{service}-project` 与 audience
+`kaiwu-{project}.{service}-service`。非默认服务只接受规范原点 URI 和精确的 `RewritePath`。
 
-配置`kaiwu.gateway.managed-routes-dir`后，对完整来源快照检查路由ID/audience/路径冲突；不能证明不相交的模板路径保守拒绝。
-Agent读/写委托只在default候选中选唯一目标，新增同项目服务不参与默认选路。登记数据库记录不会自动创建外部路由。
-本分支只做功能集成，未部署；回退前先停相关worker并撤除非default片段，保留默认兼容片段及数据库事实。
-见[本步交接](docs/verification/workflow-platform-step4-c1-20261103/HANDOFF.md)。
+旧默认片段缺少 `serviceCode` 时按 `default` 处理，保留原上游路径和过滤器兼容性。
+项目编码最长 64 个字符。配置 `kaiwu.gateway.managed-routes-dir` 后，Gateway 检查所有来源的
+路由 ID、audience 和路径冲突，无法证明互不重叠的模板路径也会被拒绝。
+
+Agent 读写委托从默认服务中选择唯一目标。在 System 登记后端服务后，还需发布其路由片段。
+停用或回退非默认服务时，先停止相关调用并撤销对应片段。新旧副本混用时，保持多服务开关关闭。升级次序见 [System 发行手册](https://github.com/kaiwuzaidao/kaiwu-system-service/blob/v0.2.0/docs/UPGRADING.md#平台组件的升级顺序)。
