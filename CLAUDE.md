@@ -1,6 +1,6 @@
 # Kaiwu Gateway Service 开发约定
 
-先读工作区 ADR 0001、ADR 0003 和 `docs/ARCHITECTURE.md`。
+先读 System 仓的[架构说明](https://github.com/kaiwuzaidao/kaiwu-system-service/blob/v0.2.0/docs/ARCHITECTURE.md)及[架构决策](https://github.com/kaiwuzaidao/kaiwu-system-service/tree/v0.2.0/docs/adr)中的 ADR 0001、0003。
 
 - Gateway 负责外部认证、会话和项目入口策略，不维护第二套权限库。
 - 禁止查询平台库或业务库，禁止执行业务资源规则。
