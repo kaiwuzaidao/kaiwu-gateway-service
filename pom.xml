@@ -13,7 +13,7 @@
 
     <groupId>com.kaiwuzaidao</groupId>
     <artifactId>kaiwu-gateway-service</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <name>Kaiwu Gateway Service</name>
     <description>Kaiwu 外部认证、项目入口策略与显式路由</description>
     <licenses>
