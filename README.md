@@ -9,9 +9,11 @@ Kaiwu 平台的**唯一外部 API 入口**。所有来自浏览器和外部客�
 ## 它负责什么
 
 - 验证外部 Access JWT（RS256）与 Redis 中的在线会话
-- 按 Route 声明的访问模式决定放行策略
+- 按 Route 声明的访问模式（`PUBLIC` / `PLATFORM` / `PROJECT`）决定放行策略
 - 签发 60 秒有效、绑定目标服务 audience 的内部 Context
-- 清除客户端伪造的身份类请求头
+- 为 `PROJECT` 请求透传 System 归约的行级数据范围声明 `ds`（ADR 0044），不新增普通 Header
+- 为已授权的 Agent 跨项目读写委托签发绑定单项目、单能力、原始参数哈希与单次 `jti` 的专用 Context（默认受开关控制）
+- 清除客户端伪造的身份与权限类请求头，注入统一 `traceId` 与脱敏访问日志
 
 ## 它不负责什么
 
@@ -82,13 +84,9 @@ Pull Request 请说明变更、风险与可直接执行的验证步骤。
 
 本项目基于 [Apache License 2.0](LICENSE) 开源。
 
-### C1项目多服务显式片段
+### 项目多服务显式路由片段（受管目录扩展）
 
-受管目录接受默认`/{project}-api/**`及非默认`/{project}-svc/{service}/**`；后者必须声明serviceCode，
-route ID固定为`{project}.{service}-project`，audience固定为`kaiwu-{project}.{service}-service`，只允许规范原点和精确RewritePath。
-默认片段缺serviceCode仍按default兼容，旧默认上游路径和额外过滤器规则保留。项目编码上限与System一致为64字符。
-
-配置`kaiwu.gateway.managed-routes-dir`后，对完整来源快照检查路由ID/audience/路径冲突；不能证明不相交的模板路径保守拒绝。
-Agent读/写委托只在default候选中选唯一目标，新增同项目服务不参与默认选路。登记数据库记录不会自动创建外部路由。
-本分支只做功能集成，未部署；回退前先停相关worker并撤除非default片段，保留默认兼容片段及数据库事实。
-见[本步交接](docs/verification/workflow-platform-step4-c1-20261103/HANDOFF.md)。
+受管目录接受默认 `/{project}-api/**` 及非默认 `/{project}-svc/{service}/**`；后者必须声明 `serviceCode`，
+route ID 固定为 `{project}.{service}-project`，audience 固定为 `kaiwu-{project}.{service}-service`，只允许规范原点和精确 `RewritePath`。
+默认片段缺 `serviceCode` 仍按 `default` 兼容。配置 `kaiwu.gateway.managed-routes-dir` 后，对完整来源快照检查路由 ID / audience / 路径冲突；
+Agent 读/写委托只在 `default` 候选中选唯一目标。
